@@ -1,5 +1,5 @@
 Traceback (most recent call last):
-  File "publictest-half.py", line 6, in <module>
+  File "publictest-full.py", line 6, in <module>
     import pycodestyle
   File "/home/ubuntu/.local/lib/python3.5/site-packages/pycodestyle.py", line 456
     yield found, f"{code} whitespace before '{char}'"
