@@ -1,81 +1,62 @@
 import ast
 import astor
-import sys
 import random
-import os
+import sys
 
 class Mutator(ast.NodeTransformer):
-    def __init__(self, seed):
-        """Initialize mutator with a specific random seed for determinism."""
-        random.seed(seed)
-
-    def visit_Compare(self, node):
-        """Negate a comparison operation (>= → <, == → !=, etc.)."""
+    def __init__(self):
+        super().__init__()
+        self.mutations = [self.mutate_comparison, self.mutate_binary_op, self.mutate_delete_stmt]
+    
+    def mutate_comparison(self, node):
+        """Negate a single comparison operator."""
         comparison_map = {
-            ast.GtE: ast.Lt, ast.LtE: ast.Gt,
-            ast.Eq: ast.NotEq, ast.NotEq: ast.Eq,
-            ast.Gt: ast.LtE, ast.Lt: ast.GtE
+            ast.Gt: ast.Lt, ast.Lt: ast.Gt,
+            ast.GtE: ast.LtE, ast.LtE: ast.GtE,
+            ast.Eq: ast.NotEq, ast.NotEq: ast.Eq
         }
         if isinstance(node.ops[0], tuple(comparison_map.keys())):
             node.ops[0] = comparison_map[type(node.ops[0])]()
         return node
-
-    def visit_BinOp(self, node):
-        """Swap binary operators (+ ↔ -, * ↔ //)."""
-        binop_map = {
-            ast.Add: ast.Sub, ast.Sub: ast.Add,
-            ast.Mult: ast.FloorDiv, ast.FloorDiv: ast.Mult
-        }
-        if isinstance(node.op, tuple(binop_map.keys())):
-            node.op = binop_map[type(node.op)]()
+    
+    def mutate_binary_op(self, node):
+        """Swap binary operators + and -, * and //."""
+        binary_op_map = {ast.Add: ast.Sub, ast.Sub: ast.Add, ast.Mult: ast.FloorDiv, ast.FloorDiv: ast.Mult}
+        if isinstance(node.op, tuple(binary_op_map.keys())):
+            node.op = binary_op_map[type(node.op)]()
         return node
-
-    def visit_Assign(self, node):
-        """Delete an assignment statement randomly."""
-        if random.random() < 0.3:
-            return None
+    
+    def mutate_delete_stmt(self, node):
+        """Delete an assignment or function call statement."""
+        if isinstance(node, (ast.Assign, ast.Expr)):
+            return None  # Removes the node
         return node
+    
+    def visit(self, node):
+        if random.random() < 0.3:  # 30% chance to mutate any applicable node
+            node = random.choice(self.mutations)(node)
+        return super().visit(node)
 
-    def visit_Expr(self, node):
-        """Delete function call expressions randomly."""
-        if isinstance(node.value, ast.Call) and random.random() < 0.3:
-            return None
-        return node
-
-def mutate_code(source_code, seed):
-    """Apply AST mutations to the input source code."""
-    tree = ast.parse(source_code)
-    mutator = Mutator(seed)
-    mutated_tree = mutator.visit(tree)
-    ast.fix_missing_locations(mutated_tree)
-    return astor.to_source(mutated_tree)
-
-def main():
-    if len(sys.argv) != 3:
-        print("Usage: python mutate.py <source_file.py> <num_mutants>")
-        sys.exit(1)
-
-    source_file = sys.argv[1]
-    try:
-        num_mutants = int(sys.argv[2])
-    except ValueError:
-        print("Error: num_mutants must be an integer.")
-        sys.exit(1)
-
-    if not os.path.exists(source_file):
-        print("Error: {} not found.".format(source_file))
-        sys.exit(1)
-
-    with open(source_file, "r") as f:
+def mutate_file(filename, num_mutants):
+    with open(filename, "r") as f:
         source_code = f.read()
-
+    
+    tree = ast.parse(source_code)
+    random.seed(0)  # Ensure deterministic mutations
+    
     for i in range(num_mutants):
-        mutated_code = mutate_code(source_code, seed=i)  # Deterministic mutations
-        mutant_filename = "{}.py".format(i)  # Python 3.5 string formatting
-        with open(mutant_filename, "w") as f:
+        mutator = Mutator()
+        mutated_tree = mutator.visit(ast.fix_missing_locations(tree))
+        mutated_code = astor.to_source(mutated_tree)
+        
+        with open(f"{i}.py", "w") as f:
             f.write(mutated_code)
-
-    print("Generated {} mutants.".format(num_mutants))
-
+    
 if __name__ == "__main__":
-    main()
+    if len(sys.argv) != 3:
+        print("Usage: python3 mutate.py <source_file.py> <num_mutants>")
+        sys.exit(1)
+    
+    source_file = sys.argv[1]
+    num_mutants = int(sys.argv[2])
+    mutate_file(source_file, num_mutants)
