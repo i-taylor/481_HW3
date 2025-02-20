@@ -1,7 +1,198 @@
+EEEEEEEEEEEEEEEEEEEEE.EEE
+======================================================================
+ERROR: testGetBestChoice2 (__main__.ProcessTest)
+----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "publictest-full.py", line 6, in <module>
-    import pycodestyle
-  File "/home/ubuntu/.local/lib/python3.5/site-packages/pycodestyle.py", line 456
-    yield found, f"{code} whitespace before '{char}'"
-                                                    ^
-SyntaxError: invalid syntax
+  File "publictest-half.py", line 226, in testGetBestChoice2
+    best = fuzzywuzzy.extractOne(query, self.baseball_strings)
+AttributeError: module 'fuzzywuzzy' has no attribute 'extractOne'
+
+======================================================================
+ERROR: testGetBestChoice4 (__main__.ProcessTest)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "publictest-half.py", line 231, in testGetBestChoice4
+    best = fuzzywuzzy.extractOne(query, self.baseball_strings)
+AttributeError: module 'fuzzywuzzy' has no attribute 'extractOne'
+
+======================================================================
+ERROR: testNullStrings (__main__.ProcessTest)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "publictest-half.py", line 293, in testNullStrings
+    best = fuzzywuzzy.extractOne(query, choices)
+AttributeError: module 'fuzzywuzzy' has no attribute 'extractOne'
+
+======================================================================
+ERROR: testWithCutoff2 (__main__.ProcessTest)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "publictest-half.py", line 277, in testWithCutoff2
+    res = fuzzywuzzy.extractOne(query, choices, score_cutoff=100)
+AttributeError: module 'fuzzywuzzy' has no attribute 'extractOne'
+
+======================================================================
+ERROR: testWithScorer (__main__.ProcessTest)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "publictest-half.py", line 251, in testWithScorer
+    scorer = fuzzywuzzy.QRatio
+AttributeError: module 'fuzzywuzzy' has no attribute 'QRatio'
+
+======================================================================
+ERROR: test_dict_like_extract (__main__.ProcessTest)
+We should be able to use a dict-like object for choices, not only a
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "publictest-half.py", line 306, in test_dict_like_extract
+    result = fuzzywuzzy.extract(search, choices)
+AttributeError: module 'fuzzywuzzy' has no attribute 'extract'
+
+======================================================================
+ERROR: test_simplematch (__main__.ProcessTest)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "publictest-half.py", line 315, in test_simplematch
+    result = fuzzywuzzy.extractOne(basic_string, match_strings, scorer=fuzzywuzzy.ratio)
+AttributeError: module 'fuzzywuzzy' has no attribute 'extractOne'
+
+======================================================================
+ERROR: testCaseInsensitive (__main__.RatioTest)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "publictest-half.py", line 98, in testCaseInsensitive
+    self.assertNotEqual(fuzzywuzzy.ratio(self.s1, self.s2), 100)
+AttributeError: module 'fuzzywuzzy' has no attribute 'ratio'
+
+======================================================================
+ERROR: testIssueSeven (__main__.RatioTest)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "publictest-half.py", line 129, in testIssueSeven
+    self.assertTrue(fuzzywuzzy.partial_ratio(s1, s2) > 75)
+AttributeError: module 'fuzzywuzzy' has no attribute 'partial_ratio'
+
+======================================================================
+ERROR: testPartialRatioUnicodeString (__main__.RatioTest)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "publictest-half.py", line 136, in testPartialRatioUnicodeString
+    score = fuzzywuzzy.partial_ratio(s1, s2)
+AttributeError: module 'fuzzywuzzy' has no attribute 'partial_ratio'
+
+======================================================================
+ERROR: testQRatioForceAscii (__main__.RatioTest)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "publictest-half.py", line 161, in testQRatioForceAscii
+    score = fuzzywuzzy.WRatio(s1, s2, force_ascii=True)
+AttributeError: module 'fuzzywuzzy' has no attribute 'WRatio'
+
+======================================================================
+ERROR: testQRatioUnicode (__main__.RatioTest)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "publictest-half.py", line 121, in testQRatioUnicode
+    self.assertEqual(fuzzywuzzy.WRatio(unicode(self.s1), unicode(self.s1a)), 100)
+AttributeError: module 'fuzzywuzzy' has no attribute 'WRatio'
+
+======================================================================
+ERROR: testQRatioUnicodeString (__main__.RatioTest)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "publictest-half.py", line 142, in testQRatioUnicodeString
+    score = fuzzywuzzy.QRatio(s1, s2)
+AttributeError: module 'fuzzywuzzy' has no attribute 'QRatio'
+
+======================================================================
+ERROR: testQuickRatioEqual (__main__.RatioTest)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "publictest-half.py", line 108, in testQuickRatioEqual
+    self.assertEqual(fuzzywuzzy.QRatio(self.s1, self.s1a), 100)
+AttributeError: module 'fuzzywuzzy' has no attribute 'QRatio'
+
+======================================================================
+ERROR: testQuickRatioNotEqual (__main__.RatioTest)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "publictest-half.py", line 111, in testQuickRatioNotEqual
+    self.assertNotEqual(fuzzywuzzy.QRatio(self.s1, self.s3), 100)
+AttributeError: module 'fuzzywuzzy' has no attribute 'QRatio'
+
+======================================================================
+ERROR: testTokenSetRatio (__main__.RatioTest)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "publictest-half.py", line 105, in testTokenSetRatio
+    self.assertEqual(fuzzywuzzy.token_set_ratio(self.s4, self.s5), 100)
+AttributeError: module 'fuzzywuzzy' has no attribute 'token_set_ratio'
+
+======================================================================
+ERROR: testTokenSortForceAscii (__main__.RatioTest)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "publictest-half.py", line 171, in testTokenSortForceAscii
+    score = fuzzywuzzy._token_sort(s1, s2, force_ascii=True)
+AttributeError: module 'fuzzywuzzy' has no attribute '_token_sort'
+
+======================================================================
+ERROR: testTokenSortRatio (__main__.RatioTest)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "publictest-half.py", line 102, in testTokenSortRatio
+    self.assertEqual(fuzzywuzzy.token_sort_ratio(self.s1, self.s1a), 100)
+AttributeError: module 'fuzzywuzzy' has no attribute 'token_sort_ratio'
+
+======================================================================
+ERROR: testWRatioCaseInsensitive (__main__.RatioTest)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "publictest-half.py", line 114, in testWRatioCaseInsensitive
+    self.assertEqual(fuzzywuzzy.WRatio(self.s1, self.s2), 100)
+AttributeError: module 'fuzzywuzzy' has no attribute 'WRatio'
+
+======================================================================
+ERROR: testWRatioMisorderedMatch (__main__.RatioTest)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "publictest-half.py", line 118, in testWRatioMisorderedMatch
+    self.assertEqual(fuzzywuzzy.WRatio(self.s4, self.s5), 95)
+AttributeError: module 'fuzzywuzzy' has no attribute 'WRatio'
+
+======================================================================
+ERROR: test_replace_non_letters_non_numbers_with_whitespace (__main__.StringProcessingTest)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "publictest-half.py", line 28, in test_replace_non_letters_non_numbers_with_whitespace
+    proc_string = fuzzywuzzy.StringProcessor.replace_non_letters_non_numbers_with_whitespace(string)
+AttributeError: module 'fuzzywuzzy' has no attribute 'StringProcessor'
+
+======================================================================
+ERROR: testCheckEmptyString (__main__.ValidatorTest)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "publictest-half.py", line 188, in testCheckEmptyString
+    decorated_func = fuzzywuzzy.check_empty_string(self.testFunc)
+AttributeError: module 'fuzzywuzzy' has no attribute 'check_empty_string'
+
+======================================================================
+ERROR: test_asciidammit (__main__.est)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "publictest-half.py", line 59, in test_asciidammit
+    fuzzywuzzy.asciidammit(s)
+AttributeError: module 'fuzzywuzzy' has no attribute 'asciidammit'
+
+======================================================================
+ERROR: test_fullProcess (__main__.est)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "publictest-half.py", line 63, in test_fullProcess
+    fuzzywuzzy.full_process(s)
+AttributeError: module 'fuzzywuzzy' has no attribute 'full_process'
+
+----------------------------------------------------------------------
+Ran 25 tests in 0.084s
+
+FAILED (errors=24)
