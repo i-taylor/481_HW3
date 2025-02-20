@@ -193,6 +193,6 @@ Traceback (most recent call last):
 AttributeError: module 'fuzzywuzzy' has no attribute 'full_process'
 
 ----------------------------------------------------------------------
-Ran 25 tests in 0.084s
+Ran 25 tests in 0.082s
 
 FAILED (errors=24)
