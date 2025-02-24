@@ -18,7 +18,7 @@ def run_tests():
         subprocess.run("rm -rf *.pyc *cache*", shell=True)
         
         # Copy mutant to fuzzywuzzy.py
-        subprocess.run(f"cp {mutant} fuzzywuzzy.py", shell=True)
+        subprocess.run("cp {} fuzzywuzzy.py".format(mutant), shell=True)
         
         # Run tests and capture errors in test.output
         result = subprocess.run("python3 publictest-full.py 2> test.output", shell=True)
@@ -30,12 +30,12 @@ def run_tests():
         failed_tests = output.count("FAILED")
         results[mutant] = failed_tests
         
-        print(f"{mutant}: FAILED={failed_tests}")
+        print("{}: FAILED={}".format(mutant, failed_tests))
         
         # Optionally, print the failed test lines
         if failed_tests > 0:
-            print(f"Failed tests in {mutant}:")
-            subprocess.run(f"grep FAILED test.output", shell=True)
+            print("Failed tests in {}:".format(mutant))
+            subprocess.run("grep FAILED test.output", shell=True)
 
     # Restore original fuzzywuzzy.py
     subprocess.run("cp saved.py fuzzywuzzy.py", shell=True)
