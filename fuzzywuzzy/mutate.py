@@ -114,6 +114,8 @@ def main():
 
     seen_mutants = set()
     
+    seen_mutants = set()
+    
     for i in range(num_mutants):
         # print("\n=== Generating Mutant #{} ===".format(i))
         mutated_code = mutate_code(source_code, seed=i, mutation_budget=3)  # Control number of mutations
@@ -126,6 +128,7 @@ def main():
         with open(mutant_filename, "w") as f:
             f.write(mutated_code)
 
+    print("Generated {} unique mutants.".format(len(seen_mutants)))
     print("Generated {} unique mutants.".format(len(seen_mutants)))
 
 if __name__ == "__main__":

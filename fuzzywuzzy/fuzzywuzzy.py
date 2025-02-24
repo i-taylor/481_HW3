@@ -11,6 +11,7 @@ import warnings
 from difflib import SequenceMatcher
 from fuzzywuzzy import fuzz
 from fuzzywuzzy import process
+
 PY3 = sys.version_info[0] == 3
 if PY3:
     string = str
