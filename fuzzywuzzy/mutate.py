@@ -116,7 +116,7 @@ def main():
     
     for i in range(num_mutants):
         # print("\n=== Generating Mutant #{} ===".format(i))
-        mutated_code = mutate_code(source_code, seed=i+300, mutation_budget=3)  # Control number of mutations
+        mutated_code = mutate_code(source_code, seed=i, mutation_budget=3)  # Control number of mutations
         
         if mutated_code in seen_mutants:
             continue  # Skip duplicate mutants
