@@ -14,7 +14,7 @@ def run_tests():
     mutants = [f for f in os.listdir('.') if f.endswith('.py') and f[0].isdigit()]
     
     for mutant in sorted(mutants, key=lambda x: int(x.split('.')[0])):
-        subprocess.run(f"rm -rf *.pyc *cache*", shell=True)
+        subprocess.run("rm -rf " + "*.pyc *cache*", shell=True)
         subprocess.run(f"cp {mutant} fuzzywuzzy.py", shell=True)
         result = subprocess.run(["python3", "publictest-full.py"], capture_output=True, text=True)
         
