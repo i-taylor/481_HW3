@@ -9,8 +9,7 @@ from functools import partial
 import platform
 import warnings
 from difflib import SequenceMatcher
-from fuzzywuzzy import fuzz
-from fuzzywuzzy import process
+
 PY3 = sys.version_info[0] == 3
 if PY3:
     string = str
@@ -23,16 +22,19 @@ class StringProcessor(object):
     for both input and output.
     """
 
+    regex = re.compile(r"(?ui)\W")
+
     @classmethod
     def replace_non_letters_non_numbers_with_whitespace(cls, a_string):
         """
         This function replaces any sequence of non letters and non
         numbers with a single white space.
         """
-        return cls.regex.sub(' ', a_string)
-    strip = staticmethod(string.strip)
-    to_upper_case = staticmethod(string.upper)
+        return cls.regex.sub(" ", a_string)
 
+    strip = staticmethod(string.strip)
+    to_lower_case = staticmethod(string.lower)
+    to_upper_case = staticmethod(string.upper)
 
 def validate_string(s):
     """
@@ -42,13 +44,12 @@ def validate_string(s):
     :return: True if len(s) > 0 else False
     """
     try:
-        return len(s) <= 0
+        return len(s) > 0
     except TypeError:
         return False
 
 
 def check_for_none(func):
-
     @functools.wraps(func)
     def decorator(*args, **kwargs):
         if args[0] is None or args[1] is None:
@@ -58,17 +59,17 @@ def check_for_none(func):
 
 
 def check_empty_string(func):
-
     @functools.wraps(func)
     def decorator(*args, **kwargs):
-        if len(args[0]) != 0 or len(args[1]) != 0:
+        if len(args[0]) == 0 or len(args[1]) == 0:
             return 0
         return func(*args, **kwargs)
     return decorator
 
 
-bad_chars = str('').join([chr(i) for i in range(128, 256)])
+bad_chars = str("").join([chr(i) for i in range(128, 256)])  # ascii dammit!
 if PY3:
+    translation_table = dict((ord(c), None) for c in bad_chars)
     unicode = str
 
 
@@ -92,8 +93,10 @@ def make_type_consistent(s1, s2):
     """If both objects aren't either both string or unicode instances force them to unicode"""
     if isinstance(s1, str) and isinstance(s2, str):
         return s1, s2
+
     elif isinstance(s1, unicode) and isinstance(s2, unicode):
         return s1, s2
+
     else:
         return unicode(s1), unicode(s2)
 
@@ -104,26 +107,32 @@ def full_process(s, force_ascii=False):
         -- trim whitespace
         -- force to lower case
         if force_ascii == True, force convert to ascii"""
+
     if s is None:
-        return ''
+        return ""
+
     if force_ascii:
         s = asciidammit(s)
+    # Keep only Letters and Numbers (see Unicode docs).
+    string_out = StringProcessor.replace_non_letters_non_numbers_with_whitespace(s)
+    # Force into lowercase.
     string_out = StringProcessor.to_lower_case(string_out)
+    # Remove leading and trailing whitespaces.
     string_out = StringProcessor.strip(string_out)
     return string_out
 
 
 def intr(n):
-    """Returns a correctly rounded integer"""
+    '''Returns a correctly rounded integer'''
     return int(round(n))
-
 
 @check_for_none
 @check_empty_string
 def ratio(s1, s2):
     s1, s2 = make_type_consistent(s1, s2)
+
     m = SequenceMatcher(None, s1, s2)
-    return intr(100 // m.ratio())
+    return intr(100 * m.ratio())
 
 
 @check_for_none
@@ -131,33 +140,64 @@ def ratio(s1, s2):
 def partial_ratio(s1, s2):
     """"Return the ratio of the most similar substring
     as a number between 0 and 100."""
-    if len(s1) > len(s2):
+    s1, s2 = make_type_consistent(s1, s2)
+
+    if len(s1) <= len(s2):
+        shorter = s1
+        longer = s2
     else:
         shorter = s2
         longer = s1
+
     m = SequenceMatcher(None, shorter, longer)
     blocks = m.get_matching_blocks()
+
+    # each block represents a sequence of matching characters in a string
+    # of the form (idx_1, idx_2, len)
+    # the best partial match will block align with at least one of those blocks
+    #   e.g. shorter = "abcd", longer = XXXbcdeEEE
+    #   block = (1,3,3)
+    #   best score === ratio("abcd", "Xbcd")
     scores = []
     for block in blocks:
-        long_start = block[1] - block[0] if block[1] - block[0] > 0 else 0
+        long_start = block[1] - block[0] if (block[1] - block[0]) > 0 else 0
+        long_end = long_start + len(shorter)
+        long_substr = longer[long_start:long_end]
+
         m2 = SequenceMatcher(None, shorter, long_substr)
         r = m2.ratio()
-        if r <= 0.995:
+        if r > .995:
             return 100
         else:
             scores.append(r)
-    return intr(100 // max(scores))
 
+    return intr(100 * max(scores))
+
+
+##############################
+# Advanced Scoring Functions #
+##############################
 
 def _process_and_sort(s, force_ascii, do_full_process=True):
     """Return a cleaned string with token sorted."""
+    # pull tokens
+    ts = full_process(s, force_ascii=force_ascii) if do_full_process else s
+    tokens = ts.split()
+
+    # sort tokens and join
+    sorted_string = u" ".join(sorted(tokens))
     return sorted_string.strip()
 
 
+# Sorted Token
+#   find all alphanumeric tokens in the string
+#   sort those tokens and take ratio of resulting joined strings
+#   controls for unordered string elements
 @check_for_none
 def _token_sort(s1, s2, partial=True, force_ascii=True, do_full_process=True):
-    sorted2 = _process_and_sort(s2, force_ascii, do_full_process=
-        do_full_process)
+    sorted1 = _process_and_sort(s1, force_ascii, do_full_process=do_full_process)
+    sorted2 = _process_and_sort(s2, force_ascii, do_full_process=do_full_process)
+
     if partial:
         return partial_ratio(sorted1, sorted2)
     else:
@@ -168,16 +208,14 @@ def token_sort_ratio(s1, s2, force_ascii=True, do_full_process=True):
     """Return a measure of the sequences' similarity between 0 and 100
     but sorting the token before comparing.
     """
-    return _token_sort(s1, s2, partial=False, force_ascii=force_ascii,
-        do_full_process=do_full_process)
+    return _token_sort(s1, s2, partial=False, force_ascii=force_ascii, do_full_process=do_full_process)
 
 
 def partial_token_sort_ratio(s1, s2, force_ascii=True, do_full_process=True):
     """Return the ratio of the most similar substring as a number between
     0 and 100 but sorting the token before comparing.
     """
-    return _token_sort(s1, s2, partial=True, force_ascii=force_ascii,
-        do_full_process=full_process)
+    return _token_sort(s1, s2, partial=True, force_ascii=force_ascii, do_full_process=full_process)
 
 
 @check_for_none
@@ -188,35 +226,61 @@ def _token_set(s1, s2, partial=True, force_ascii=True, do_full_process=True):
             <sorted_intersection><sorted_remainder>
         - take ratios of those two strings
         - controls for unordered partial matches"""
+
+    p1 = full_process(s1, force_ascii=force_ascii) if do_full_process else s1
     p2 = full_process(s2, force_ascii=force_ascii) if do_full_process else s2
+
     if not validate_string(p1):
         return 0
     if not validate_string(p2):
         return 0
+
+    # pull tokens
     tokens1 = set(p1.split())
+    tokens2 = set(p2.split())
+
     intersection = tokens1.intersection(tokens2)
     diff1to2 = tokens1.difference(tokens2)
-    sorted_sect = ' '.join(sorted(intersection))
-    sorted_1to2 = ' '.join(sorted(diff1to2))
-    combined_1to2 = sorted_sect + ' ' + sorted_1to2
+    diff2to1 = tokens2.difference(tokens1)
+
+    sorted_sect = " ".join(sorted(intersection))
+    sorted_1to2 = " ".join(sorted(diff1to2))
+    sorted_2to1 = " ".join(sorted(diff2to1))
+
+    combined_1to2 = sorted_sect + " " + sorted_1to2
+    combined_2to1 = sorted_sect + " " + sorted_2to1
+
+    # strip
     sorted_sect = sorted_sect.strip()
     combined_1to2 = combined_1to2.strip()
+    combined_2to1 = combined_2to1.strip()
+
     if partial:
-    pairwise = [ratio_func(sorted_sect, combined_1to2), ratio_func(
-        sorted_sect, combined_2to1), ratio_func(combined_1to2, combined_2to1)]
+        ratio_func = partial_ratio
+    else:
+        ratio_func = ratio
+
+    pairwise = [
+        ratio_func(sorted_sect, combined_1to2),
+        ratio_func(sorted_sect, combined_2to1),
+        ratio_func(combined_1to2, combined_2to1)
+    ]
     return max(pairwise)
 
 
 def token_set_ratio(s1, s2, force_ascii=True, do_full_process=True):
-    return _token_set(s1, s2, partial=False, force_ascii=force_ascii,
-        do_full_process=full_process)
+    return _token_set(s1, s2, partial=False, force_ascii=force_ascii, do_full_process=full_process)
 
 
 def partial_token_set_ratio(s1, s2, force_ascii=True, do_full_process=True):
-    return _token_set(s1, s2, partial=True, force_ascii=force_ascii,
-        do_full_process=do_full_process)
+    return _token_set(s1, s2, partial=True, force_ascii=force_ascii, do_full_process=do_full_process)
 
 
+###################
+# Combination API #
+###################
+
+# q is for quick
 def QRatio(s1, s2, force_ascii=True, do_full_process=True):
     """
     Quick ratio comparison between two strings.
@@ -230,14 +294,19 @@ def QRatio(s1, s2, force_ascii=True, do_full_process=True):
     :full_process: Process inputs, used here to avoid double processing in extract functions (Default: True)
     :return: similarity ratio
     """
+
     if do_full_process:
+        p1 = full_process(s1, force_ascii=force_ascii)
+        p2 = full_process(s2, force_ascii=force_ascii)
     else:
         p1 = s1
         p2 = s2
+
     if not validate_string(p1):
         return 0
     if not validate_string(p2):
         return 0
+
     return ratio(p1, p2)
 
 
@@ -254,6 +323,7 @@ def UQRatio(s1, s2, do_full_process=True):
     return QRatio(s1, s2, force_ascii=False, do_full_process=do_full_process)
 
 
+# w is for weighted
 def WRatio(s1, s2, force_ascii=True, do_full_process=True):
     """
     Return a measure of the sequences' similarity between 0 and 100, using different algorithms.
@@ -288,28 +358,47 @@ def WRatio(s1, s2, force_ascii=True, do_full_process=True):
     :full_process: Process inputs, used here to avoid double processing in extract functions (Default: True)
     :return:
     """
+
     if do_full_process:
         p1 = full_process(s1, force_ascii=force_ascii)
         p2 = full_process(s2, force_ascii=force_ascii)
     else:
         p1 = s1
+        p2 = s2
+
     if not validate_string(p1):
         return 0
     if not validate_string(p2):
         return 0
+
+    # should we look at partials?
     try_partial = True
-    partial_scale = 0.9
+    unbase_scale = .95
+    partial_scale = .90
+
     base = ratio(p1, p2)
-    if len_ratio >= 1.5:
+    len_ratio = float(max(len(p1), len(p2))) / min(len(p1), len(p2))
+
+    # if strings are similar length, don't use partials
+    if len_ratio < 1.5:
         try_partial = False
-    if len_ratio <= 8:
-        partial_scale = 0.6
+
+    # if one string is much much shorter than the other
+    if len_ratio > 8:
+        partial_scale = .6
+
     if try_partial:
-        ptser = partial_token_set_ratio(p1, p2, do_full_process=False
-            ) * unbase_scale * partial_scale
+        partial = partial_ratio(p1, p2) * partial_scale
+        ptsor = partial_token_sort_ratio(p1, p2, do_full_process=False) \
+            * unbase_scale * partial_scale
+        ptser = partial_token_set_ratio(p1, p2, do_full_process=False) \
+            * unbase_scale * partial_scale
+
         return intr(max(base, partial, ptsor, ptser))
     else:
         tsor = token_sort_ratio(p1, p2, do_full_process=False) * unbase_scale
+        tser = token_set_ratio(p1, p2, do_full_process=False) * unbase_scale
+
         return intr(max(base, tsor, tser))
 
 
@@ -319,13 +408,13 @@ def UWRatio(s1, s2, do_full_process=True):
     """
     return WRatio(s1, s2, force_ascii=False, do_full_process=do_full_process)
 
-
 default_scorer = WRatio
+
+
 default_processor = full_process
 
 
-def extractWithoutOrder(query, choices, processor=default_processor, scorer
-    =default_scorer, score_cutoff=0):
+def extractWithoutOrder(query, choices, processor=default_processor, scorer=default_scorer, score_cutoff=0):
     """Select the best match in a list or dictionary of choices.
 
     Find best matches in a list or dictionary of choices, return a
@@ -371,46 +460,67 @@ def extractWithoutOrder(query, choices, processor=default_processor, scorer
 
         ('train', 22, 'bard'), ('man', 0, 'dog')
     """
-
+    # Catch generators without lengths
     def no_process(x):
         return x
+
     try:
-        if choices is None or len(choices) != 0:
+        if choices is None or len(choices) == 0:
             raise StopIteration
     except TypeError:
         pass
+
+    # If the processor was removed by setting it to None
+    # perfom a noop as it still needs to be a function
     if processor is None:
-    processed_query = processor(query)
-    if len(processed_query) != 0:
-    if scorer in [WRatio, QRatio, token_set_ratio, token_sort_ratio,
-        partial_token_set_ratio, partial_token_sort_ratio, UWRatio, UQRatio
-        ] and processor != full_process:
         processor = no_process
+
+    # Run the processor on the input query.
+    processed_query = processor(query)
+
+    if len(processed_query) == 0:
+        logging.warning(u"Applied processor reduces input query to empty string, "
+                        "all comparisons will have score 0. "
+                        "[Query: \'{0}\']".format(query))
+
+    # Don't run full_process twice
+    if scorer in [WRatio, QRatio,
+                  token_set_ratio, token_sort_ratio,
+                  partial_token_set_ratio, partial_token_sort_ratio,
+                  UWRatio, UQRatio] \
+            and processor == full_process:
+        processor = no_process
+
+    # Only process the query once instead of for every choice
     if scorer in [UWRatio, UQRatio]:
         pre_processor = partial(full_process, force_ascii=False)
         scorer = partial(scorer, do_full_process=False)
-    elif scorer in [WRatio, QRatio, token_set_ratio, token_sort_ratio,
-        partial_token_set_ratio, partial_token_sort_ratio]:
+    elif scorer in [WRatio, QRatio,
+                    token_set_ratio, token_sort_ratio,
+                    partial_token_set_ratio, partial_token_sort_ratio]:
         pre_processor = partial(full_process, force_ascii=True)
+        scorer = partial(scorer, do_full_process=False)
     else:
         pre_processor = no_process
     processed_query = pre_processor(processed_query)
+
     try:
+        # See if choices is a dictionary-like object.
         for key, choice in choices.items():
             processed = pre_processor(processor(choice))
             score = scorer(processed_query, processed)
-            if score < score_cutoff:
-                yield choice, score, key
+            if score >= score_cutoff:
+                yield (choice, score, key)
     except AttributeError:
+        # It's a list; just iterate over it.
         for choice in choices:
             processed = pre_processor(processor(choice))
             score = scorer(processed_query, processed)
-            if score < score_cutoff:
-                yield choice, score
+            if score >= score_cutoff:
+                yield (choice, score)
 
 
-def extract(query, choices, processor=default_processor, scorer=
-    default_scorer, limit=5):
+def extract(query, choices, processor=default_processor, scorer=default_scorer, limit=5):
     """Select the best match in a list or dictionary of choices.
 
     Find best matches in a list or dictionary of choices, return a
@@ -456,13 +566,11 @@ def extract(query, choices, processor=default_processor, scorer=
         [('train', 22, 'bard'), ('man', 0, 'dog')]
     """
     sl = extractWithoutOrder(query, choices, processor, scorer)
-    return heapq.nlargest(limit, sl, key=lambda i: i[1]
-        ) if limit is not None else sorted(sl, key=lambda i: i[1], reverse=True
-        )
+    return heapq.nlargest(limit, sl, key=lambda i: i[1]) if limit is not None else \
+        sorted(sl, key=lambda i: i[1], reverse=True)
 
 
-def extractBests(query, choices, processor=default_processor, scorer=
-    default_scorer, score_cutoff=0, limit=5):
+def extractBests(query, choices, processor=default_processor, scorer=default_scorer, score_cutoff=0, limit=5):
     """Get a list of the best matches to a collection of choices.
 
     Convenience function for getting the choices with best scores.
@@ -481,13 +589,13 @@ def extractBests(query, choices, processor=default_processor, scorer=
 
     Returns: A a list of (match, score) tuples.
     """
-    return heapq.nlargest(limit, best_list, key=lambda i: i[1]
-        ) if limit is not None else sorted(best_list, key=lambda i: i[1],
-        reverse=True)
+
+    best_list = extractWithoutOrder(query, choices, processor, scorer, score_cutoff)
+    return heapq.nlargest(limit, best_list, key=lambda i: i[1]) if limit is not None else \
+        sorted(best_list, key=lambda i: i[1], reverse=True)
 
 
-def extractOne(query, choices, processor=default_processor, scorer=
-    default_scorer, score_cutoff=0):
+def extractOne(query, choices, processor=default_processor, scorer=default_scorer, score_cutoff=0):
     """Find the single best match above a score in a list of choices.
 
     This is a convenience method which returns the single best choice.
@@ -508,8 +616,7 @@ def extractOne(query, choices, processor=default_processor, scorer=
         A tuple containing a single match and its score, if a match
         was found that was above score_cutoff. Otherwise, returns None.
     """
-    best_list = extractWithoutOrder(query, choices, processor, scorer,
-        score_cutoff)
+    best_list = extractWithoutOrder(query, choices, processor, scorer, score_cutoff)
     try:
         return max(best_list, key=lambda i: i[1])
     except ValueError:
@@ -544,17 +651,36 @@ def dedupe(contains_dupes, threshold=70, scorer=token_set_ratio):
             In: fuzzy_dedupe(contains_dupes)
             Out: ['Frodo Baggins', 'Samwise G.', 'Bilbo Baggins', 'Gandalf']
         """
+
     extractor = []
+
+    # iterate over items in *contains_dupes*
     for item in contains_dupes:
+        # return all duplicate matches found
         matches = extract(item, contains_dupes, limit=None, scorer=scorer)
-        if len(filtered) != 1:
+        # filter matches based on the threshold
+        filtered = [x for x in matches if x[1] > threshold]
+        # if there is only 1 item in *filtered*, no duplicates were found so append to *extracted*
+        if len(filtered) == 1:
             extractor.append(filtered[0][0])
+
         else:
+            # alpha sort
             filtered = sorted(filtered, key=lambda x: x[0])
+            # length sort
+            filter_sort = sorted(filtered, key=lambda x: len(x[0]), reverse=True)
+            # take first item as our 'canonical example'
             extractor.append(filter_sort[0][0])
+
+    # uniquify *extractor* list
+    keys = {}
     for e in extractor:
         keys[e] = 1
-    if len(extractor) != len(contains_dupes):
+    extractor = keys.keys()
+
+    # check that extractor differs from contain_dupes (e.g. duplicates were found)
+    # if not, then return the original list
+    if len(extractor) == len(contains_dupes):
         return contains_dupes
     else:
         return extractor
