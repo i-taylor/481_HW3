@@ -15,14 +15,19 @@ def run_tests():
     
     for mutant in sorted(mutants, key=lambda x: int(x.split('.')[0])):
         subprocess.run("rm -rf " + "*.pyc *cache*", shell=True)
-        subprocess.run(f"cp {mutant} fuzzywuzzy.py", shell=True)
-        result = subprocess.run(["python3", "publictest-full.py"], capture_output=True, text=True)
+        subprocess.run("cp {} fuzzywuzzy.py".format(mutant), shell=True)
         
-        failed_tests = result.stderr.count("FAILED")
-        error_tests = result.stderr.count("ERROR")
+        # Use check_output to capture the result
+        result = subprocess.check_output(["python3", "publictest-full.py"], stderr=subprocess.STDOUT)
+        
+        # Decode the result output for Python 3.5
+        result = result.decode('utf-8')
+        
+        failed_tests = result.count("FAILED")
+        error_tests = result.count("ERROR")
         results[mutant] = failed_tests + error_tests
         
-        print(f"{mutant}: FAILED={failed_tests}, ERRORS={error_tests}")
+        print("{}: FAILED={}, ERRORS={}".format(mutant, failed_tests, error_tests))
     
     subprocess.run("cp saved.py fuzzywuzzy.py", shell=True)
     return results
@@ -36,15 +41,15 @@ def find_optimal_seed():
         generate_mutants(seed)
         results = run_tests()
         
-        scores = [results.get(f"{i}.py", 0) for i in range(5)]
+        scores = [results.get("{}.py".format(i), 0) for i in range(5)]
         
         if scores[0] > scores[1] > scores[2] > scores[3] > scores[4]:
-            print(f"Found valid seed: {seed}")
+            print("Found valid seed: {}".format(seed))
             best_seed = seed
             best_score = scores
             break
     
-    print(f"Best seed found: {best_seed} with scores {best_score}")
+    print("Best seed found: {} with scores {}".format(best_seed, best_score))
     return best_seed
 
 if __name__ == "__main__":
