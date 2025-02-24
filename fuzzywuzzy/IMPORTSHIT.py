@@ -9,26 +9,35 @@ def generate_mutants(seed):
 def run_tests():
     """Run the test suite on each mutant and collect results."""
     results = {}
-    
+
     subprocess.run("cp fuzzywuzzy.py saved.py", shell=True)
     mutants = [f for f in os.listdir('.') if f.endswith('.py') and f[0].isdigit()]
-    
+
     for mutant in sorted(mutants, key=lambda x: int(x.split('.')[0])):
-        subprocess.run("rm -rf " + "*.pyc *cache*", shell=True)
-        subprocess.run("cp {} fuzzywuzzy.py".format(mutant), shell=True)
+        # Clean up cache and pyc files
+        subprocess.run("rm -rf *.pyc *cache*", shell=True)
         
-        # Use check_output to capture the result
-        result = subprocess.check_output(["python3", "publictest-full.py"], stderr=subprocess.STDOUT)
+        # Copy mutant to fuzzywuzzy.py
+        subprocess.run(f"cp {mutant} fuzzywuzzy.py", shell=True)
         
-        # Decode the result output for Python 3.5
-        result = result.decode('utf-8')
+        # Run tests and capture errors in test.output
+        result = subprocess.run("python3 publictest-full.py 2> test.output", shell=True)
         
-        failed_tests = result.count("FAILED")
-        error_tests = result.count("ERROR")
-        results[mutant] = failed_tests + error_tests
+        # Read test output and check for failed tests
+        with open("test.output", "r") as f:
+            output = f.read()
         
-        print("{}: FAILED={}, ERRORS={}".format(mutant, failed_tests, error_tests))
-    
+        failed_tests = output.count("FAILED")
+        results[mutant] = failed_tests
+        
+        print(f"{mutant}: FAILED={failed_tests}")
+        
+        # Optionally, print the failed test lines
+        if failed_tests > 0:
+            print(f"Failed tests in {mutant}:")
+            subprocess.run(f"grep FAILED test.output", shell=True)
+
+    # Restore original fuzzywuzzy.py
     subprocess.run("cp saved.py fuzzywuzzy.py", shell=True)
     return results
 
