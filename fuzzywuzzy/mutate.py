@@ -115,8 +115,13 @@ def main():
     seen_mutants = set()
     
     for i in range(num_mutants):
-        # print("\n=== Generating Mutant #{} ===".format(i))
-        mutated_code = mutate_code(source_code, seed=i, mutation_budget=3)  # Control number of mutations
+        # Add a deterministic random seed for each mutation based on 'i'
+        rand_seed = 1000 + i  # Create a base for the rand seed
+        random.seed(rand_seed)  # Ensure that 'rand' gets a seed itself
+        rand_addition = random.randint(0, 1000)  # Generate a deterministic random number
+        mutated_seed = i + rand_addition  # Final seed for the mutation
+        
+        mutated_code = mutate_code(source_code, seed=mutated_seed, mutation_budget=3)  # Control number of mutations
         
         if mutated_code in seen_mutants:
             continue  # Skip duplicate mutants
